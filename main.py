@@ -37,6 +37,7 @@ def display_menu(store_id):
         # Print the table
         print("Menu of Products in Store " + str(store_id))
         print(table)
+    return
 
 
 # sign-up form for customers
@@ -92,6 +93,7 @@ def sign_up():
     print("Account created successfully.")
     cnx.commit()
     main()
+    return
 
 # display list of available stores in each state
 def display_store():
@@ -148,6 +150,7 @@ def view_order_history(customer_id):
     print("Taking you back to customer menu...")
     print("========================")
     customer_menu(customer_id)
+    return
 
 def return_order(customer_id):
     # prompt the customer to enter the order ID to return
@@ -171,6 +174,7 @@ def return_order(customer_id):
     # if order details not found or order doesn't belong to the customer
     if not order_details:
         print("Invalid order ID or order doesn't belong to you.")
+        customer_menu(customer_id)
         return
 
     order_id, order_date, receive_date, order_total = order_details
@@ -240,18 +244,9 @@ def return_order(customer_id):
             '''
             DELETE FROM online_orders
             WHERE order_id = %s
-            ''', (order_id)
-        )
-        print("delete from online_orders")
-
-        # delete order entry from orders table
-        cursor.execute(
-            '''
-            DELETE FROM orders
-            WHERE order_id = %s
             ''', (order_id,)
         )
-        print("delete from orders")
+        print("delete from online_orders")
 
         # delete order entry from customer_orders table
         cursor.execute(
@@ -260,8 +255,16 @@ def return_order(customer_id):
             WHERE order_id = %s
             ''', (order_id,)
         )
-
         print("delete from customer_orders")
+        
+        # delete products in order_items table
+        cursor.execute(
+            '''
+            DELETE FROM order_items
+            WHERE order_id = %s
+            ''', (order_id,)
+        )
+        print("delete from order_items")
 
         # delete order from ships table
         cursor.execute(
@@ -272,14 +275,14 @@ def return_order(customer_id):
         )
         print("delete from ships")
 
-        # delete products in order_items table
+        # delete order entry from orders table
         cursor.execute(
             '''
-            DELETE FROM order_items
+            DELETE FROM orders
             WHERE order_id = %s
             ''', (order_id,)
         )
-        print("delete from order_items")
+        print("delete from orders")
 
         cnx.commit()
 
@@ -289,6 +292,7 @@ def return_order(customer_id):
     
     print("========================")
     customer_menu(customer_id)
+    return
 
 # customer interface
 def customer_menu(customer_id):
@@ -306,36 +310,7 @@ def customer_menu(customer_id):
     # view order history
     if choice == 2: 
         view_order_history(customer_id)
-        # cursor = cnx.cursor()
-        # cursor.execute(
-        #     '''
-        #     Select co.order_id, a.UPC, a.item_name, a.size, a.color
-        #     From apparel a, order_items oi, orders o, customer_orders co
-        #     Where co.customer_id = %s
-        #     and co.order_id = o.order_id
-        #     and oi.order_id = o.order_id
-        #     and oi.apparel_id = a.apparel_id
-        #     ''', (customer_id,)
-        # )
-        # products = cursor.fetchall()
-
-        # if not products:
-        #     print("You have no previous order.")
-        # else:
-        #     # Create table
-        #     table = PrettyTable()
-        #     table.field_names = ["Order ID", "Apparel UPC","Apparel Name","Size", "Color"]
-        #     for product in products:
-        #         ord_id, upc, name, size, color = product
-        #         table.add_row([ord_id, upc, name, size, color])
-
-        #     print("Here is your previous order(s): ")
-        #     print(table)
-
-        # print("Taking you back to customer menu...")
-        # print("========================")
-        # customer_menu(customer_id)
-
+        
     # return order
     elif choice == 3:
         return_order(customer_id)
