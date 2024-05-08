@@ -150,8 +150,145 @@ def view_order_history(customer_id):
     customer_menu(customer_id)
 
 def return_order(customer_id):
-    pass
+    # prompt the customer to enter the order ID to return
+    order_id = input("Enter the order ID you want to return: ")
 
+    # validate order id 
+    cursor = cnx.cursor()
+    cursor.execute(
+        '''
+        SELECT order_id, order_date, receive_date, order_total
+        FROM online_orders
+        WHERE order_id = %s AND order_id IN (
+            SELECT order_id
+            FROM customer_orders
+            WHERE customer_id = %s
+        )
+        ''', (order_id, customer_id)
+    )
+    order_details = cursor.fetchone()
+
+    # if order details not found or order doesn't belong to the customer
+    if not order_details:
+        print("Invalid order ID or order doesn't belong to you.")
+        return
+
+    order_id, order_date, receive_date, order_total = order_details
+
+    # Display order details
+    print("Order ID:", order_id)
+    print("Order Date:", order_date)
+    print("Receive Date:", receive_date)
+    print("Order Total:", order_total)
+
+    cursor.execute(
+        '''
+        SELECT a.apparel_id, a.UPC, a.item_name, a.price, a.size, a.color, oi.quantity
+        FROM order_items oi
+        JOIN apparel a ON oi.apparel_id = a.apparel_id
+        WHERE oi.order_id = %s
+        ''', (order_id,)
+    )
+    order_items = cursor.fetchall()
+
+    if order_items:
+        print("\nProducts in the order:")
+        table = PrettyTable()
+        table.field_names = ["Apparel UPC","Apparel Name", "Price","Size", "Color","Quantity"]
+        for (apparel_id, apparel_upc, item_name, price, size, color, quantity) in order_items:
+            table.add_row([apparel_upc,item_name, price, size, color, quantity])
+    print(table)
+
+    # confirm return
+    confirm_return = input("Do you want to return this order? (Y/N): ").upper()
+
+    if confirm_return == "Y":
+
+        cursor.execute(
+        '''
+        SELECT store_id
+        FROM ships
+        WHERE order_id = %s
+        ''', (order_id,)
+        )
+        store_id = cursor.fetchone()[0]
+
+        # update inventory by adding back into has table
+        cursor.execute(
+        '''
+        SELECT apparel_id, quantity
+        FROM order_items
+        WHERE order_id = %s
+        ''', (order_id,)
+        )
+        returned_items = cursor.fetchall()
+        print(returned_items)
+
+        for apparel_id, quantity in returned_items:
+            cursor.execute(
+                '''
+                UPDATE has
+                SET quantity = quantity + %s
+                WHERE store_id = %s AND apparel_id = %s
+                ''', (quantity, store_id, apparel_id)
+            )
+        
+        print("update has")
+
+        # delete order entry from online_orders table
+        cursor.execute(
+            '''
+            DELETE FROM online_orders
+            WHERE order_id = %s
+            ''', (order_id)
+        )
+        print("delete from online_orders")
+
+        # delete order entry from orders table
+        cursor.execute(
+            '''
+            DELETE FROM orders
+            WHERE order_id = %s
+            ''', (order_id,)
+        )
+        print("delete from orders")
+
+        # delete order entry from customer_orders table
+        cursor.execute(
+            '''
+            DELETE FROM customer_orders
+            WHERE order_id = %s
+            ''', (order_id,)
+        )
+
+        print("delete from customer_orders")
+
+        # delete order from ships table
+        cursor.execute(
+            '''
+            DELETE FROM ships
+            WHERE order_id = %s
+            ''', (order_id,)
+        )
+        print("delete from ships")
+
+        # delete products in order_items table
+        cursor.execute(
+            '''
+            DELETE FROM order_items
+            WHERE order_id = %s
+            ''', (order_id,)
+        )
+        print("delete from order_items")
+
+        cnx.commit()
+
+        print("Order has been returned successfully")    
+    else:
+        print("Return cancelled")
+    
+    print("========================")
+    customer_menu(customer_id)
 
 # customer interface
 def customer_menu(customer_id):
