@@ -237,7 +237,6 @@ def return_order(customer_id):
                 ''', (quantity, store_id, apparel_id)
             )
         
-        print("update has")
 
         # delete order entry from online_orders table
         cursor.execute(
@@ -246,7 +245,6 @@ def return_order(customer_id):
             WHERE order_id = %s
             ''', (order_id,)
         )
-        print("delete from online_orders")
 
         # delete order entry from customer_orders table
         cursor.execute(
@@ -255,7 +253,6 @@ def return_order(customer_id):
             WHERE order_id = %s
             ''', (order_id,)
         )
-        print("delete from customer_orders")
         
         # delete products in order_items table
         cursor.execute(
@@ -264,7 +261,6 @@ def return_order(customer_id):
             WHERE order_id = %s
             ''', (order_id,)
         )
-        print("delete from order_items")
 
         # delete order from ships table
         cursor.execute(
@@ -273,7 +269,6 @@ def return_order(customer_id):
             WHERE order_id = %s
             ''', (order_id,)
         )
-        print("delete from ships")
 
         # delete order entry from orders table
         cursor.execute(
@@ -282,7 +277,6 @@ def return_order(customer_id):
             WHERE order_id = %s
             ''', (order_id,)
         )
-        print("delete from orders")
 
         cnx.commit()
 
